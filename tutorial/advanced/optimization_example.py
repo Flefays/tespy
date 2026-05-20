@@ -227,3 +227,57 @@ plt.tight_layout()
 fig.savefig("optimization_result.svg")
 print(best)
 # %%[sec_7]
+
+# Pymoo Optimizer
+from pymoo.optimize import minimize
+
+# TESPy wrapping of pymoo problem
+from tespy.tools.optimization import OptimizationProblem
+
+
+problem = OptimizationProblem(
+    model=plant,
+    variables={
+        "extraction pressure 1": {"min": 1, "max": 40},
+        "extraction pressure 2": {"min": 1, "max": 40},
+    },
+    constraints={
+        "extraction pressure 1": {"min": "extraction pressure 2"},
+    },
+    objective=["efficiency"],
+    minimize=[False], # False pour maximiser l'efficacité (équivalent de minimize_flags)
+    kpi=["hpt power", "hpt pressure ratio"],
+)
+
+
+# Pymoo Minimizing function using the constraint problem 
+res = minimize(
+    problem,
+    algorithm,
+    termination=('n_gen', num_evo),
+    verbose=True
+)
+
+if res.X is not None:
+    print("\n" + "="*40)
+    print(f"{'OFFICIAL OPTIMIZER SOLUTION':^40}")
+    print("="*40)
+    # res.X contains the optimized variables
+    print(f"{'Optimal Pressure 1 [bar]:':<25} {res.X[0]:>8.4f}")
+    print(f"{'Optimal Pressure 2 [bar]:':<25} {res.X[1]:>8.4f}")
+    
+    # res.F is the objective value 
+    # Maximizing instead of minimizing
+    Objective_res = -res.F[0]
+    print(f"{'Maximized efficiency [-]:':<25} {Objective_res:>8.5f}")
+    
+    # Check if constraints were violated (res.G <= 0 means success)
+    if hasattr(res, 'G') and res.G is not None:
+        print(f"{'Constraint Violation (G):':<25} {res.G[0]:>8.5f}")
+    print("="*40)
+else:
+    print("\n[Warning] Pymoo found no feasible solution satisfying the constraint.")
+
+
+# %%[sec_8]
+
